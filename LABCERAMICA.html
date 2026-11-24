@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> Laboratorio sulla Ceramica: dall'Argilla alla Ceramica – Laboratorio interattivo</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Fredoka per un tono didattico moderno e leggibile -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Three.js r128 e OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Fredoka', 'sans-serif'],
+          },
+          colors: {
+            terracotta: {
+              DEFAULT: '#C85A32',
+              light: '#E07A54',
+              dark: '#9E4220',
+            },
+            argilla: {
+              DEFAULT: '#8C6239',
+              light: '#B0855B',
+              dark: '#634324',
+            },
+            crema: {
+              DEFAULT: '#FAF6F0',
+              dark: '#EFE6D8',
+            },
+            acqua: {
+              DEFAULT: '#2B8CBE',
+              light: '#64B5F6',
+              dark: '#1A6288',
+            },
+            lavagna: {
+              DEFAULT: '#1E293B',
+              light: '#334155',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #FAF6F0;
+      color: #1E293B;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* Sfondo stile carta da laboratorio artigianale */
+    .paper-texture {
+      background-color: #FAF6F0;
+      background-image: radial-gradient(#d8ccb8 0.75px, transparent 0.75px);
+      background-size: 20px 20px;
+    }
+
+    /* Scrollbar sottile e pulita */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #EFE6D8;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #C85A32;
+      border-radius: 8px;
+    }
+
+    /* Slider personalizzati */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: #C85A32;
+      border: 3px solid #FAF6F0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      margin-top: -7px;
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      cursor: pointer;
+      background: #DFD3C3;
+      border-radius: 999px;
+    }
+
+    .slider-water::-webkit-slider-thumb {
+      background: #2B8CBE;
+    }
+    .slider-fire::-webkit-slider-runnable-track {
+      background: linear-gradient(90deg, #94A3B8 0%, #F59E0B 55%, #EF4444 80%, #FEF08A 100%);
+    }
+
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .animate-pulse-soft {
+      animation: pulseSoft 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="paper-texture min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER PRINCIPALE -->
+  <header class="bg-lavagna text-crema shadow-lg border-b-4 border-terracotta sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row items-center justify-between gap-3">
+      <!-- Titolo e sottotitolo -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-terracotta flex items-center justify-center shadow-inner shrink-0">
+          <!-- Icona SVG Vaso Stilizzato -->
+          <svg class="w-7 h-7 text-crema" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3h8"/>
+            <path d="M9 3c0 2-2 3-2 6 0 4 2 7 2 10h6c0-3 2-6 2-10 0-3-2-4-2-6"/>
+            <path d="M7.5 11h9"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-display text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white leading-tight">
+            I Materiali Ceramici: <span class="text-terracotta-light">dall'Argilla alla Ceramica</span>
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-300">Lab. interattivo prof.ssa Giliberti</p>
+        </div>
+      </div>
+
+      <!-- Navigazione 4 Modalità -->
+      <nav class="flex flex-wrap justify-center gap-1.5 sm:gap-2 bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700" role="tablist">
+        <button onclick="switchMode('cycle')" id="nav-cycle" class="nav-tab px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 bg-terracotta text-white shadow">
+          <span>🏺</span> <span>1. Ciclo in 5 Fasi</span>
+        </button>
+        <button onclick="switchMode('compare')" id="nav-compare" class="nav-tab px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700">
+          <span>💧</span> <span>2. Porosa vs Compatta</span>
+        </button>
+        <button onclick="switchMode('micro')" id="nav-micro" class="nav-tab px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700">
+          <span>🔬</span> <span>3. Zoom Microscopico</span>
+        </button>
+        <button onclick="switchMode('quiz')" id="nav-quiz" class="nav-tab px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700">
+          <span>🎯</span> <span>4. Verifica in Aula</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENITORE PRINCIPALE (VIEWPORT 3D + PANNELLO DIDATTICO) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+
+    <!-- COLONNA SINISTRA / CENTRALE: SCENA 3D INTERATTIVA (7 colonne su desktop) -->
+    <section class="lg:col-span-7 flex flex-col gap-3">
+      <div class="relative w-full h-[380px] sm:h-[460px] lg:h-[540px] rounded-3xl overflow-hidden shadow-xl border-2 border-argilla/30 bg-gradient-to-b from-[#EDE3D3] to-[#DFD1BC]" id="canvas-wrapper">
+        
+        <!-- Canvas Three.js -->
+        <div id="three-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+        <!-- Badge Stato in Alto a Sinistra -->
+        <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+          <div id="scene-badge" class="bg-lavagna/90 backdrop-blur-md text-white px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm font-semibold shadow-md border border-slate-600 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-terracotta animate-ping"></span>
+            <span id="scene-title-overlay">Fase 1: Impasto – Argilla e Acqua</span>
+          </div>
+
+          <button onclick="resetCameraView()" class="pointer-events-auto bg-white/90 hover:bg-white text-lavagna px-3 py-1.5 rounded-xl text-xs font-semibold shadow border border-slate-300 transition flex items-center gap-1.5" title="Ripristina inquadratura 3D">
+            <span>🎥</span> <span>Centra Vista</span>
+          </button>
+        </div>
+
+        <!-- Messaggio / Toast didattico sovrapposto al canvas -->
+        <div id="canvas-feedback" class="hidden absolute bottom-14 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-lavagna/95 text-white px-4 py-3 rounded-2xl shadow-2xl border-2 border-terracotta text-center text-xs sm:text-sm font-medium z-20 transition-all">
+        </div>
+
+        <!-- Suggerimento controlli camera in basso -->
+        <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] sm:text-xs text-lavagna/80 bg-crema/85 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-argilla/20 pointer-events-none">
+          <span>🖱️ <b>Trascina</b> per ruotare • <b>Rotella/Pizzica</b> per zoomare</span>
+          <span id="audio-status" class="font-semibold text-acqua-dark">🔊 Audio pronto</span>
+        </div>
+      </div>
+
+      <!-- CRUSCOTTO INDICATORI FISICI IN TEMPO REALE -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-white/90 p-3 rounded-2xl shadow-md border border-argilla/20">
+        <div class="bg-crema p-2.5 rounded-xl border border-argilla/15 text-center">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Temperatura</div>
+          <div id="stat-temp" class="font-display text-lg sm:text-xl font-bold text-terracotta">20 °C</div>
+        </div>
+        <div class="bg-crema p-2.5 rounded-xl border border-argilla/15 text-center">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Umidità</div>
+          <div id="stat-humidity" class="font-display text-lg sm:text-xl font-bold text-acqua">2 %</div>
+        </div>
+        <div class="bg-crema p-2.5 rounded-xl border border-argilla/15 text-center">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Plasticità</div>
+          <div id="stat-plasticity" class="font-display text-sm sm:text-base font-bold text-argilla mt-0.5">Nulla (Secca)</div>
+        </div>
+        <div class="bg-crema p-2.5 rounded-xl border border-argilla/15 text-center">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Durezza</div>
+          <div id="stat-hardness" class="font-display text-sm sm:text-base font-bold text-lavagna mt-0.5">Friabile</div>
+        </div>
+        <div class="col-span-2 sm:col-span-1 bg-crema p-2.5 rounded-xl border border-argilla/15 text-center">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Porosità</div>
+          <div id="stat-porosity" class="font-display text-sm sm:text-base font-bold text-slate-700 mt-0.5">Incoerente</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLONNA DESTRA: PANNELLO DI CONTROLLO E SPIEGAZIONE DIDATTICA (5 colonne su desktop) -->
+    <section class="lg:col-span-5 flex flex-col gap-3">
+      
+      <!-- =========================================================
+           PANNELLO 1: IL CICLO PRODUTTIVO IN 5 FASI
+           ========================================================= -->
+      <div id="panel-cycle" class="mode-panel bg-white rounded-3xl p-4 sm:p-5 shadow-xl border-2 border-argilla/25 flex flex-col gap-4">
+        
+        <!-- Selettore Step 1..5 + Tour Automatico -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-terracotta">Fasi della Lavorazione</span>
+            <button onclick="toggleAutoTour()" id="btn-autotour" class="text-xs font-bold px-3 py-1 rounded-full bg-lavagna text-white hover:bg-terracotta transition flex items-center gap-1 shadow-sm">
+              <span>▶️</span> <span id="autotour-label">Avvia Ciclo Continuo</span>
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-5 gap-1.5">
+            <button onclick="setCycleStep(1)" id="step-btn-1" class="step-btn py-2 px-1 rounded-xl text-xs font-bold border-2 border-terracotta bg-terracotta text-white transition flex flex-col items-center">
+              <span>1</span>
+              <span class="text-[10px] sm:text-xs truncate w-full text-center">Impasto</span>
+            </button>
+            <button onclick="setCycleStep(2)" id="step-btn-2" class="step-btn py-2 px-1 rounded-xl text-xs font-bold border-2 border-slate-200 bg-crema text-lavagna hover:border-terracotta/50 transition flex flex-col items-center">
+              <span>2</span>
+              <span class="text-[10px] sm:text-xs truncate w-full text-center">Formatura</span>
+            </button>
+            <button onclick="setCycleStep(3)" id="step-btn-3" class="step-btn py-2 px-1 rounded-xl text-xs font-bold border-2 border-slate-200 bg-crema text-lavagna hover:border-terracotta/50 transition flex flex-col items-center">
+              <span>3</span>
+              <span class="text-[10px] sm:text-xs truncate w-full text-center">Essiccaz.</span>
+            </button>
+            <button onclick="setCycleStep(4)" id="step-btn-4" class="step-btn py-2 px-1 rounded-xl text-xs font-bold border-2 border-slate-200 bg-crema text-lavagna hover:border-terracotta/50 transition flex flex-col items-center">
+              <span>4</span>
+              <span class="text-[10px] sm:text-xs truncate w-full text-center">Cottura</span>
+            </button>
+            <button onclick="setCycleStep(5)" id="step-btn-5" class="step-btn py-2 px-1 rounded-xl text-xs font-bold border-2 border-slate-200 bg-crema text-lavagna hover:border-terracotta/50 transition flex flex-col items-center">
+              <span>5</span>
+              <span class="text-[10px] sm:text-xs truncate w-full text-center">Smaltatura</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CONTROLLI SPECIFICI PER OGNI FASE -->
+        <div class="bg-crema rounded-2xl p-4 border border-argilla/20">
+          
+          <!-- FASE 1: IMPASTO -->
+          <div id="step-controls-1" class="step-control space-y-3">
+            <h2 class="font-display text-lg font-bold text-lavagna flex items-center gap-2">
+              <span class="bg-argilla text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">1</span>
+              Impasto: Materia Prima e Plasticità
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+              L'<strong>argilla</strong> è una roccia sedimentaria formata da minerali finissimi: asciutta è terrosa e incoerente. Aggiungendo la giusta quantità d'<strong>acqua</strong> (e sgrassanti come sabbia), diventa <strong>plastica</strong>: si modella senza rompersi e mantiene la forma.
+            </p>
+            <div class="space-y-2 pt-1">
+              <div class="flex justify-between text-xs font-bold">
+                <span class="text-argilla-dark">Secca (2%)</span>
+                <span class="text-acqua-dark">Acqua nell'impasto: <span id="water-val-label">2%</span></span>
+                <span class="text-acqua">Plastica (25%)</span>
+              </div>
+              <input type="range" id="slider-water" min="2" max="25" value="2" class="slider-water" oninput="updateWaterMixing(this.value)">
+              <div class="flex gap-2 pt-1">
+                <button onclick="animateAddWater()" class="flex-1 bg-acqua hover:bg-acqua-dark text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm shadow transition flex items-center justify-center gap-2">
+                  <span>💧</span> <span>Aggiungi Acqua e Impasta</span>
+                </button>
+                <button onclick="resetWaterMixing()" class="bg-slate-200 hover:bg-slate-300 text-lavagna font-semibold py-2.5 px-3 rounded-xl text-xs transition">
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FASE 2: FORMATURA (4 TECNICHE) -->
+          <div id="step-controls-2" class="step-control hidden space-y-3">
+            <h2 class="font-display text-lg font-bold text-lavagna flex items-center gap-2">
+              <span class="bg-terracotta text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">2</span>
+              Formatura: 4 Modi per Dare Forma
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+              Scegli una delle <strong>4 tecniche di formatura</strong> della lezione per modellare l'impasto plastico:
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="setFormingTech('tornio')" id="tech-tornio" class="tech-btn p-2.5 rounded-xl border-2 border-terracotta bg-terracotta/10 text-left transition">
+                <div class="font-bold text-xs sm:text-sm text-terracotta-dark">🌀 Al Tornio</div>
+                <div class="text-[11px] text-slate-600">Disco rotante per forme simmetriche</div>
+              </button>
+              <button onclick="setFormingTech('colombino')" id="tech-colombino" class="tech-btn p-2.5 rounded-xl border-2 border-slate-200 bg-white text-left hover:border-terracotta/50 transition">
+                <div class="font-bold text-xs sm:text-sm text-lavagna">🐍 A Colombino</div>
+                <div class="text-[11px] text-slate-600">Anelli sovrapposti a spirale</div>
+              </button>
+              <button onclick="setFormingTech('stampaggio')" id="tech-stampaggio" class="tech-btn p-2.5 rounded-xl border-2 border-slate-200 bg-white text-left hover:border-terracotta/50 transition">
+                <div class="font-bold text-xs sm:text-sm text-lavagna">🧱 Per Stampaggio</div>
+                <div class="text-[11px] text-slate-600">Pressatura tra due semistampi</div>
+              </button>
+              <button onclick="setFormingTech('colaggio')" id="tech-colaggio" class="tech-btn p-2.5 rounded-xl border-2 border-slate-200 bg-white text-left hover:border-terracotta/50 transition">
+                <div class="font-bold text-xs sm:text-sm text-lavagna">🫗 Per Colaggio</div>
+                <div class="text-[11px] text-slate-600">Barbottina liquida in stampo di gesso</div>
+              </button>
+            </div>
+
+            <div class="pt-1 space-y-2">
+              <div class="flex justify-between text-xs font-bold text-slate-600">
+                <span>Avanzamento modellazione:</span>
+                <span id="forming-pct-label">0%</span>
+              </div>
+              <input type="range" id="slider-forming" min="0" max="100" value="0" oninput="updateFormingProgress(this.value)">
+              <button onclick="animateForming()" id="btn-animate-forming" class="w-full bg-terracotta hover:bg-terracotta-dark text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow transition flex items-center justify-center gap-2">
+                <span>👐</span> <span>Modella al Tornio</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- FASE 3: ESSICCAZIONE -->
+          <div id="step-controls-3" class="step-control hidden space-y-3">
+            <h2 class="font-display text-lg font-bold text-lavagna flex items-center gap-2">
+              <span class="bg-acqua text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">3</span>
+              Essiccazione all'Aria
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+              Prima di entrare nel forno, il vaso crudo deve perdere l'acqua d'impasto lentamente all'aria: il colore schiarisce e il volume subisce un leggero <strong>ritiro</strong>.
+            </p>
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs font-bold">
+                <span>Umido (25%)</span>
+                <span class="text-acqua-dark">Essiccazione: <span id="drying-pct-label">0%</span></span>
+                <span>Asciutto (2%)</span>
+              </div>
+              <input type="range" id="slider-drying" min="0" max="100" value="0" class="slider-water" oninput="updateDryingProgress(this.value)">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <button onclick="animateDrying()" class="bg-acqua hover:bg-acqua-dark text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm shadow transition flex items-center justify-center gap-1.5">
+                  <span>💨</span> <span>Essicca all'Aria</span>
+                </button>
+                <button onclick="testKilnExplosion()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm shadow transition flex items-center justify-center gap-1.5" title="Cosa succede se cuoci un vaso ancora bagnato?">
+                  <span>⚠️</span> <span>Test Sicurezza Forno</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FASE 4: COTTURA NEL FORNO -->
+          <div id="step-controls-4" class="step-control hidden space-y-3">
+            <h2 class="font-display text-lg font-bold text-lavagna flex items-center gap-2">
+              <span class="bg-red-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">4</span>
+              Cottura nel Forno (Trasformazione)
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+              Oltre i <strong>900 °C</strong> la trasformazione è <strong>irreversibile</strong>: l'argilla diventa ceramica (dura, resistente al calore e agli acidi, isolante, ma fragile).
+            </p>
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs font-bold">
+                <span>20 °C</span>
+                <span class="text-red-600 text-sm">Forno: <span id="kiln-temp-label">20 °C</span></span>
+                <span>1400 °C</span>
+              </div>
+              <input type="range" id="slider-kiln" min="20" max="1400" step="10" value="20" class="slider-fire" oninput="updateKilnTemp(this.value)">
+              
+              <!-- Preset temperature didattiche -->
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="animateKilnTo(1000)" class="bg-terracotta hover:bg-terracotta-dark text-white font-bold py-2 px-2.5 rounded-xl text-xs shadow transition">
+                  🔥 1000 °C (Biscotto / Porosa)
+                </button>
+                <button onclick="animateKilnTo(1300)" class="bg-slate-700 hover:bg-lavagna text-white font-bold py-2 px-2.5 rounded-xl text-xs shadow transition">
+                  ⚡ 1300 °C (Vetrificata / Compatta)
+                </button>
+              </div>
+
+              <!-- Test proprietà post-cottura -->
+              <div class="grid grid-cols-2 gap-2 pt-1 border-t border-argilla/15">
+                <button onclick="testPostFiringWater()" class="bg-acqua/15 hover:bg-acqua/25 text-acqua-dark border border-acqua/30 font-bold py-2 px-2 rounded-xl text-xs transition">
+                  💧 Test Acqua (Irreversibile?)
+                </button>
+                <button onclick="testPostFiringHammer()" class="bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 font-bold py-2 px-2 rounded-xl text-xs transition">
+                  🔨 Test Martelletto (Fragilità)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FASE 5: SMALTATURA E SECONDA COTTURA -->
+          <div id="step-controls-5" class="step-control hidden space-y-3">
+            <h2 class="font-display text-lg font-bold text-lavagna flex items-center gap-2">
+              <span class="bg-acqua-dark text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">5</span>
+              Smaltatura e Seconda Cottura
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+              Per rendere un oggetto a pasta porosa (come il biscotto in terracotta) <strong>impermeabile, igienico e decorato</strong>, si applica uno <strong>smalto vetroso</strong> e si procede a una seconda cottura.
+            </p>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-600">Colore smalto:</span>
+              <button onclick="setGlazeColor('#2B8CBE')" class="w-7 h-7 rounded-full bg-[#2B8CBE] border-2 border-white shadow ring-2 ring-terracotta" title="Azzurro Maiolica"></button>
+              <button onclick="setGlazeColor('#2E7D32')" class="w-7 h-7 rounded-full bg-[#2E7D32] border-2 border-white shadow" title="Verde Ramina"></button>
+              <button onclick="setGlazeColor('#EAB308')" class="w-7 h-7 rounded-full bg-[#EAB308] border-2 border-white shadow" title="Giallo Ocra"></button>
+              <button onclick="setGlazeColor('#F8FAFC')" class="w-7 h-7 rounded-full bg-[#F8FAFC] border-2 border-slate-300 shadow" title="Bianco Stannifero"></button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="animateApplyGlaze()" class="bg-acqua hover:bg-acqua-dark text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm shadow transition flex items-center justify-center gap-1.5">
+                <span>🖌️</span> <span>1. Applica Smalto</span>
+              </button>
+              <button onclick="animateSecondFiring()" class="bg-terracotta hover:bg-terracotta-dark text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm shadow transition flex items-center justify-center gap-1.5">
+                <span>✨</span> <span>2. Seconda Cottura</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Pulsanti Navigazione Avanti / Indietro -->
+        <div class="flex items-center justify-between pt-1">
+          <button onclick="prevCycleStep()" id="btn-prev-step" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-lavagna font-bold text-xs sm:text-sm transition disabled:opacity-40">
+            ← Fase Precedente
+          </button>
+          <span id="step-counter-text" class="text-xs font-bold text-slate-500">Fase 1 di 5</span>
+          <button onclick="nextCycleStep()" id="btn-next-step" class="px-4 py-2 rounded-xl bg-lavagna hover:bg-terracotta text-white font-bold text-xs sm:text-sm transition">
+            Fase Successiva →
+          </button>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           PANNELLO 2: PASTA POROSA VS PASTA COMPATTA
+           ========================================================= -->
+      <div id="panel-compare" class="mode-panel hidden bg-white rounded-3xl p-4 sm:p-5 shadow-xl border-2 border-argilla/25 flex flex-col gap-3">
+        <h2 class="font-display text-lg sm:text-xl font-bold text-lavagna">
+          Laboratorio: Pasta Porosa vs Pasta Compatta
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-700">
+          Confronta dal vivo un <strong>vaso in terracotta</strong> (sinistra) e una <strong>tazzina in porcellana</strong> (destra) con due esperimenti scientifici:
+        </p>
+
+        <!-- Pulsanti Esperimenti Interattivi -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button onclick="runWaterDropTest()" class="bg-acqua hover:bg-acqua-dark text-white font-bold py-3 px-3 rounded-2xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+            <span>💧</span> <span>Test della Goccia d'Acqua</span>
+          </button>
+          <button onclick="runSoundRodTest()" class="bg-terracotta hover:bg-terracotta-dark text-white font-bold py-3 px-3 rounded-2xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+            <span>🔔</span> <span>Test del Suono (Bacchetta)</span>
+          </button>
+        </div>
+
+        <!-- Tabella Comparativa Completa dalla Lezione -->
+        <div class="overflow-hidden rounded-2xl border border-argilla/25 text-xs">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-lavagna text-white">
+                <th class="p-2.5 font-bold">Criterio</th>
+                <th class="p-2.5 font-bold text-terracotta-light">Pasta Porosa</th>
+                <th class="p-2.5 font-bold text-acqua-light">Pasta Compatta</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-argilla/15 bg-crema/60">
+              <tr>
+                <td class="p-2 font-bold text-lavagna">Acqua</td>
+                <td class="p-2">Assorbe acqua (se non smaltata)</td>
+                <td class="p-2">Impermeabile anche senza smalto</td>
+              </tr>
+              <tr>
+                <td class="p-2 font-bold text-lavagna">Cottura</td>
+                <td class="p-2 font-semibold text-terracotta-dark">900 – 1050 °C</td>
+                <td class="p-2 font-semibold text-acqua-dark">1200 – 1400 °C</td>
+              </tr>
+              <tr>
+                <td class="p-2 font-bold text-lavagna">Suono & Peso</td>
+                <td class="p-2">Leggera, opaca, <b>suono sordo</b></td>
+                <td class="p-2">Pesante, dura, <b>suono squillante</b></td>
+              </tr>
+              <tr>
+                <td class="p-2 font-bold text-lavagna">Esempi</td>
+                <td class="p-2"><b>Terracotta</b> (vasi, mattoni), <b>Maiolica</b>, <b>Terraglia</b></td>
+                <td class="p-2"><b>Gres</b> (piastrelle), <b>Porcellana</b> (tazzine, sanitari)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button onclick="switchMode('micro')" class="w-full bg-lavagna hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2">
+          <span>🔬</span> <span>Osserva la struttura al Microscopio 3D →</span>
+        </button>
+      </div>
+
+      <!-- =========================================================
+           PANNELLO 3: ZOOM MICROSCOPICO 3D
+           ========================================================= -->
+      <div id="panel-micro" class="mode-panel hidden bg-white rounded-3xl p-4 sm:p-5 shadow-xl border-2 border-argilla/25 flex flex-col gap-3.5">
+        <h2 class="font-display text-lg sm:text-xl font-bold text-lavagna flex items-center gap-2">
+          <span>🔬</span> Zoom Microscopico 3D
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+          Guarda cosa accade ai granuli d'argilla dentro il forno quando aumenta la temperatura! Passa da una struttura all'altra e lancia le molecole d'acqua:
+        </p>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="setMicroStructure('porosa')" id="micro-btn-porosa" class="p-3 rounded-2xl border-2 border-terracotta bg-terracotta/10 text-left transition">
+            <div class="font-display font-bold text-sm text-terracotta-dark">🧱 Pasta Porosa</div>
+            <div class="text-xs text-slate-600 mt-0.5">Cotta a 900-1050 °C: granuli distanziati con micropori.</div>
+          </button>
+          <button onclick="setMicroStructure('compatta')" id="micro-btn-compatta" class="p-3 rounded-2xl border-2 border-slate-200 bg-crema text-left hover:border-acqua transition">
+            <div class="font-display font-bold text-sm text-acqua-dark">💎 Pasta Compatta</div>
+            <div class="text-xs text-slate-600 mt-0.5">Cotta a 1200-1400 °C: granuli fusi e vetrificati.</div>
+          </button>
+        </div>
+
+        <button onclick="spawnMicroWaterMolecules()" class="w-full bg-acqua hover:bg-acqua-dark text-white font-bold py-3 px-4 rounded-2xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+          <span>💦</span> <span>Invia Gocce d'Acqua sui Granuli</span>
+        </button>
+
+        <div id="micro-explanation-box" class="bg-crema p-3.5 rounded-2xl border border-terracotta/30 text-xs sm:text-sm text-slate-800 space-y-1.5">
+          <div class="font-bold text-terracotta-dark">Cosa osservi ora (Pasta Porosa):</div>
+          <p>
+            A 900-1050 °C i granuli di argilla si saldano nei punti di contatto, ma restano <strong>spazi vuoti (micropori)</strong>. Le sfere d'acqua riescono a penetrare in profondità: per renderla impermeabile serve lo <strong>smalto</strong>!
+          </p>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           PANNELLO 4: VERIFICA IN AULA "QUALE MATERIALE È?"
+           ========================================================= -->
+      <div id="panel-quiz" class="mode-panel hidden bg-white rounded-3xl p-4 sm:p-5 shadow-xl border-2 border-argilla/25 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="font-display text-lg font-bold text-lavagna">Verifica: Quale Materiale È?</h2>
+          <span id="quiz-score-badge" class="bg-terracotta text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+            Punti: 0 / 6
+          </span>
+        </div>
+
+        <!-- Barra progresso 6 oggetti -->
+        <div class="flex gap-1.5" id="quiz-progress-dots">
+          <span class="h-2 flex-1 rounded-full bg-terracotta"></span>
+          <span class="h-2 flex-1 rounded-full bg-slate-200"></span>
+          <span class="h-2 flex-1 rounded-full bg-slate-200"></span>
+          <span class="h-2 flex-1 rounded-full bg-slate-200"></span>
+          <span class="h-2 flex-1 rounded-full bg-slate-200"></span>
+          <span class="h-2 flex-1 rounded-full bg-slate-200"></span>
+        </div>
+
+        <!-- Scheda Domanda Corrente -->
+        <div id="quiz-card" class="bg-crema rounded-2xl p-3.5 border border-argilla/20 space-y-3">
+          <div class="flex items-center justify-between">
+            <span id="quiz-item-number" class="text-xs font-bold uppercase text-terracotta">Oggetto 1 di 6</span>
+            <div class="flex gap-1.5">
+              <button onclick="testQuizObjectWater()" class="bg-acqua/15 hover:bg-acqua/25 text-acqua-dark px-2.5 py-1 rounded-lg text-xs font-bold transition" title="Prova la goccia d'acqua sull'oggetto 3D">
+                💧 Prova Acqua
+              </button>
+              <button onclick="testQuizObjectSound()" class="bg-terracotta/15 hover:bg-terracotta/25 text-terracotta-dark px-2.5 py-1 rounded-lg text-xs font-bold transition" title="Ascolta il suono dell'oggetto">
+                🔔 Suono
+              </button>
+            </div>
+          </div>
+
+          <div class="font-display text-lg font-bold text-lavagna" id="quiz-item-name">
+            1. Mattone forato da costruzione
+          </div>
+          <p class="text-xs text-slate-600" id="quiz-item-hint">
+            Osserva l'oggetto 3D, provalo con acqua o suono e scegli la classificazione e motivazione corretta:
+          </p>
+
+          <!-- Opzioni di risposta -->
+          <div id="quiz-options" class="space-y-2"></div>
+
+          <!-- Feedback dopo la risposta -->
+          <div id="quiz-feedback" class="hidden p-3 rounded-xl text-xs sm:text-sm font-medium"></div>
+
+          <button onclick="nextQuizQuestion()" id="btn-quiz-next" class="hidden w-full bg-lavagna hover:bg-terracotta text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition">
+            Prossimo Oggetto →
+          </button>
+        </div>
+
+        <!-- Riepilogo Finale Quiz -->
+        <div id="quiz-summary" class="hidden bg-crema rounded-2xl p-4 border-2 border-terracotta text-center space-y-3">
+          <div class="text-3xl">🏆</div>
+          <h3 class="font-display text-xl font-bold text-lavagna">Verifica Completata!</h3>
+          <p id="quiz-final-text" class="text-sm text-slate-700 font-medium"></p>
+          <div class="bg-white p-3 rounded-xl border border-argilla/20 text-left text-xs text-slate-600 space-y-1">
+            <div class="font-bold text-lavagna">📝 Compito a casa (ricorda!):</div>
+            <p>Individua un oggetto in ceramica a casa, disegnalo o fotografalo e scrivi 3-4 righe: famiglia ceramica, proprietà utile e fase di lavorazione fondamentale.</p>
+          </div>
+          <button onclick="restartQuiz()" class="w-full bg-terracotta hover:bg-terracotta-dark text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow transition">
+            🔄 Ripeti la Sfida
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- SCRIPT PRINCIPALE: SIMULAZIONE 3D + AUDIO + LOGICA DIDATTICA -->
+  <script>
+    // =========================================================================
+    // 1. SINTETIZZATORE AUDIO (Web Audio API - nessun file esterno richiesto)
+    // =========================================================================
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playCeramicSound(type) {
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      if (type === 'porosa') {
+        // Suono sordo/opaco (bassa frequenza, decadimento rapido)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(210, now);
+        osc.frequency.exponentialRampToValueAtTime(95, now + 0.16);
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === 'compatta') {
+        // Suono squillante e cristallino (armoniche alte prolungate)
+        [1480, 2960, 4120].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          const amp = idx === 0 ? 0.35 : 0.12 / idx;
+          gain.gain.setValueAtTime(amp, now);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 1.1);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 1.15);
+        });
+      } else if (type === 'water') {
+        // Goccia d'acqua
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(980, now + 0.12);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      } else if (type === 'crack') {
+        // Rumore secco di rottura/crepa
+        const bufferSize = audioCtx.sampleRate * 0.25;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.04));
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1100;
+        noise.connect(filter);
+        filter.connect(audioCtx.destination);
+        noise.start(now);
+      }
+    }
+
+    // =========================================================================
+    // 2. INIZIALIZZAZIONE SCENA THREE.JS
+    // =========================================================================
+    const container = document.getElementById('three-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 100);
+    const defaultCamPos = new THREE.Vector3(0, 4.2, 8.8);
+    const defaultCamTarget = new THREE.Vector3(0, 1.3, 0);
+    camera.position.copy(defaultCamPos);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.minDistance = 3.5;
+    controls.maxDistance = 16;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.target.copy(defaultCamTarget);
+
+    function resetCameraView() {
+      camera.position.copy(defaultCamPos);
+      controls.target.copy(defaultCamTarget);
+      controls.update();
+    }
+
+    // Luci calde da laboratorio artigianale
+    const ambientLight = new THREE.AmbientLight(0xfff6eb, 0.68);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfffaf0, 0.95);
+    dirLight.position.set(5, 10, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 25;
+    const d = 6;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    scene.add(dirLight);
+
+    const rimLight = new THREE.DirectionalLight(0xdbeafe, 0.4);
+    rimLight.position.set(-6, 5, -5);
+    scene.add(rimLight);
+
+    // Luce interna del forno (dinamica)
+    const kilnPointLight = new THREE.PointLight(0xff5500, 0, 8);
+    kilnPointLight.position.set(0, 1.6, 0.2);
+    scene.add(kilnPointLight);
+
+    // =========================================================================
+    // 3. TAVOLO DA LAVORO 3D (Base fissa del laboratorio)
+    // =========================================================================
+    const workbenchGroup = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.75, metalness: 0.05 });
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x3b6998, roughness: 0.6 });
+
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.35, 6.2), woodMat);
+    tableTop.position.y = -0.175;
+    tableTop.receiveShadow = true;
+    workbenchGroup.add(tableTop);
+
+    [[-4.6, -2.6], [4.6, -2.6], [-4.6, 2.6], [4.6, 2.6]].forEach(([x, z]) => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3, 0.35), legMat);
+      leg.position.set(x, -1.65, z);
+      workbenchGroup.add(leg);
+    });
+    scene.add(workbenchGroup);
+
+    // Gruppi dedicati per le 4 modalità
+    const cycleGroup = new THREE.Group();
+    const compareGroup = new THREE.Group();
+    const microGroup = new THREE.Group();
+    const quizGroup = new THREE.Group();
+    scene.add(cycleGroup, compareGroup, microGroup, quizGroup);
+
+    // Particelle dinamiche globali (gocce d'acqua, vapore, onde sonore)
+    const particles = [];
+
+    // =========================================================================
+    // 4. COSTRUZIONE GEOMETRIE 3D RIUTILIZZABILI (Vaso, Tazzina, Oggetti)
+    // =========================================================================
+    function createVaseGeometry(scale = 1, segments = 36) {
+      const pts = [
+        new THREE.Vector2(0.0, 0.0),
+        new THREE.Vector2(0.75 * scale, 0.0),
+        new THREE.Vector2(0.82 * scale, 0.25 * scale),
+        new THREE.Vector2(1.08 * scale, 0.95 * scale),
+        new THREE.Vector2(1.02 * scale, 1.55 * scale),
+        new THREE.Vector2(0.68 * scale, 2.05 * scale),
+        new THREE.Vector2(0.78 * scale, 2.35 * scale),
+        new THREE.Vector2(0.66 * scale, 2.35 * scale),
+        new THREE.Vector2(0.56 * scale, 2.02 * scale),
+        new THREE.Vector2(0.88 * scale, 1.50 * scale),
+        new THREE.Vector2(0.92 * scale, 0.95 * scale),
+        new THREE.Vector2(0.65 * scale, 0.22 * scale),
+        new THREE.Vector2(0.0, 0.22 * scale)
+      ];
+      return new THREE.LatheGeometry(pts, segments);
+    }
+
+    function createCupGroup() {
+      const group = new THREE.Group();
+      const pts = [
+        new THREE.Vector2(0.0, 0.0),
+        new THREE.Vector2(0.55, 0.0),
+        new THREE.Vector2(0.78, 0.75),
+        new THREE.Vector2(0.85, 1.45),
+        new THREE.Vector2(0.77, 1.45),
+        new THREE.Vector2(0.70, 0.75),
+        new THREE.Vector2(0.48, 0.14),
+        new THREE.Vector2(0.0, 0.14)
+      ];
+      const bodyGeo = new THREE.LatheGeometry(pts, 36);
+      const porcelainMat = new THREE.MeshPhysicalMaterial({
+        color: 0xfefefe,
+        roughness: 0.12,
+        metalness: 0.02,
+        clearcoat: 0.9,
+        clearcoatRoughness: 0.1
+      });
+      const body = new THREE.Mesh(bodyGeo, porcelainMat);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+
+      // Manico tazzina
+      const handleGeo = new THREE.TorusGeometry(0.42, 0.09, 14, 28, Math.PI * 1.15);
+      const handle = new THREE.Mesh(handleGeo, porcelainMat);
+      handle.position.set(0.78, 0.78, 0);
+      handle.rotation.z = -Math.PI * 0.55;
+      handle.castShadow = true;
+      group.add(handle);
+
+      // Piattino
+      const saucerPts = [
+        new THREE.Vector2(0.0, 0.0),
+        new THREE.Vector2(1.15, 0.0),
+        new THREE.Vector2(1.38, 0.16),
+        new THREE.Vector2(1.34, 0.20),
+        new THREE.Vector2(1.10, 0.06),
+        new THREE.Vector2(0.0, 0.06)
+      ];
+      const saucer = new THREE.Mesh(new THREE.LatheGeometry(saucerPts, 36), porcelainMat);
+      saucer.position.y = -0.05;
+      saucer.receiveShadow = true;
+      saucer.castShadow = true;
+      group.add(saucer);
+
+      group.userData.material = porcelainMat;
+      return group;
+    }
+
+    // =========================================================================
+    // 5. MODALITÀ 1: IL CICLO PRODUTTIVO IN 5 FASI
+    // =========================================================================
+    let currentMode = 'cycle';
+    let currentStep = 1;
+    let autoTourActive = false;
+    let autoTourTimer = null;
+
+    // Stato fisico del ciclo
+    const cycleState = {
+      waterPct: 2,
+      formingTech: 'tornio',
+      formingProgress: 0,
+      dryingProgress: 0,
+      kilnTemp: 20,
+      glazeColor: '#2B8CBE',
+      glazeApplied: false,
+      secondFired: false,
+      cracked: false
+    };
+
+    // Contenitori per ciascuna fase del ciclo
+    const step1Obj = new THREE.Group();
+    const step2Obj = new THREE.Group();
+    const step3Obj = new THREE.Group();
+    const step4Obj = new THREE.Group();
+    const step5Obj = new THREE.Group();
+    cycleGroup.add(step1Obj, step2Obj, step3Obj, step4Obj, step5Obj);
+
+    // --- FASE 1: IMPASTO (Zolla terrosa -> Panetto plastico) ---
+    const clayLumpGeo = new THREE.IcosahedronGeometry(1.15, 3);
+    // Deformazione organica iniziale
+    const posAttr = clayLumpGeo.attributes.position;
+    const origPositions = new Float32Array(posAttr.array.length);
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i);
+      const vy = posAttr.getY(i);
+      const vz = posAttr.getZ(i);
+      const noise = 1 + 0.18 * Math.sin(vx * 4) * Math.cos(vy * 4) + 0.12 * Math.sin(vz * 5);
+      posAttr.setXYZ(i, vx * noise, vy * 0.72 * noise, vz * noise);
+    }
+    origPositions.set(posAttr.array);
+    clayLumpGeo.computeVertexNormals();
+
+    const step1ClayMat = new THREE.MeshStandardMaterial({
+      color: 0xb59472, // secco e polveroso
+      roughness: 0.96,
+      flatShading: true
+    });
+    const step1ClayMesh = new THREE.Mesh(clayLumpGeo, step1ClayMat);
+    step1ClayMesh.position.y = 0.78;
+    step1ClayMesh.castShadow = true;
+    step1ClayMesh.receiveShadow = true;
+    step1Obj.add(step1ClayMesh);
+
+    // Granelli di terra secca attorno al blocco
+    const crumbsGroup = new THREE.Group();
+    for (let i = 0; i < 18; i++) {
+      const crumb = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.08 + Math.random() * 0.08, 0),
+        step1ClayMat
+      );
+      const angle = (i / 18) * Math.PI * 2;
+      const dist = 1.2 + Math.random() * 0.6;
+      crumb.position.set(Math.cos(angle) * dist, 0.06, Math.sin(angle) * dist);
+      crumbsGroup.add(crumb);
+    }
+    step1Obj.add(crumbsGroup);
+
+    // Ciotola d'acqua accanto all'argilla
+    const waterBowl = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.65, 0.45, 0.45, 24),
+      new THREE.MeshStandardMaterial({ color: 0x2b8cbe, roughness: 0.4 })
+    );
+    waterBowl.position.set(2.1, 0.22, 0.4);
+    waterBowl.castShadow = true;
+    step1Obj.add(waterBowl);
+
+    const waterSurface = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.58, 0.58, 0.05, 24),
+      new THREE.MeshPhysicalMaterial({ color: 0x64b5f6, roughness: 0.1, transmission: 0.5 })
+    );
+    waterSurface.position.set(2.1, 0.41, 0.4);
+    step1Obj.add(waterSurface);
+
+    // --- FASE 2: FORMATURA (4 Tecniche) ---
+    const wetClayMat = new THREE.MeshStandardMaterial({
+      color: 0x7c5330,
+      roughness: 0.35
+    });
+
+    // 2a) Tornio
+    const tornioSubGroup = new THREE.Group();
+    const wheelDisc = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.65, 1.65, 0.18, 36),
+      new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.5, roughness: 0.35 })
+    );
+    wheelDisc.position.y = 0.09;
+    wheelDisc.receiveShadow = true;
+    tornioSubGroup.add(wheelDisc);
+
+    // Cilindro dinamico che si trasforma in vaso
+    const tornioVaseGeo = createVaseGeometry(1, 36);
+    const tornioVasePos = tornioVaseGeo.attributes.position;
+    const tornioTargetCoords = new Float32Array(tornioVasePos.array);
+    const tornioStartCoords = new Float32Array(tornioVasePos.array.length);
+    for (let i = 0; i < tornioVasePos.count; i++) {
+      const y = tornioTargetCoords[i * 3 + 1];
+      const r = Math.hypot(tornioTargetCoords[i * 3], tornioTargetCoords[i * 3 + 2]);
+      const angle = Math.atan2(tornioTargetCoords[i * 3 + 2], tornioTargetCoords[i * 3]);
+      // All'inizio è un blocco cilindrico basso e tozzo
+      const newR = r > 0.01 ? 0.85 : 0;
+      const newY = y * 0.45;
+      tornioStartCoords[i * 3] = Math.cos(angle) * newR;
+      tornioStartCoords[i * 3 + 1] = newY;
+      tornioStartCoords[i * 3 + 2] = Math.sin(angle) * newR;
+      tornioVasePos.setXYZ(i, tornioStartCoords[i * 3], newY, tornioStartCoords[i * 3 + 2]);
+    }
+    tornioVaseGeo.computeVertexNormals();
+    const tornioVaseMesh = new THREE.Mesh(tornioVaseGeo, wetClayMat);
+    tornioVaseMesh.position.y = 0.18;
+    tornioVaseMesh.castShadow = true;
+    tornioSubGroup.add(tornioVaseMesh);
+    step2Obj.add(tornioSubGroup);
+
+    // 2b) Colombino (11 anelli sovrapposti a spirale)
+    const colombinoSubGroup = new THREE.Group();
+    colombinoSubGroup.visible = false;
+    const baseDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.16, 28), wetClayMat);
+    baseDisc.position.y = 0.08;
+    colombinoSubGroup.add(baseDisc);
+
+    const coilRings = [];
+    const coilRadii = [0.75, 0.82, 0.92, 1.02, 1.05, 1.00, 0.90, 0.78, 0.68, 0.72, 0.76];
+    coilRadii.forEach((rad, idx) => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.11, 14, 32), wetClayMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.24 + idx * 0.19;
+      ring.castShadow = true;
+      ring.visible = false;
+      colombinoSubGroup.add(ring);
+      coilRings.push(ring);
+    });
+    step2Obj.add(colombinoSubGroup);
+
+    // 2c) Stampaggio (Due semistampi che pressano l'argilla)
+    const stampaggioSubGroup = new THREE.Group();
+    stampaggioSubGroup.visible = false;
+    const plasterMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85 });
+    const leftMold = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.5, 2.2), plasterMat);
+    leftMold.position.set(-1.3, 1.25, 0);
+    leftMold.castShadow = true;
+    const rightMold = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.5, 2.2), plasterMat);
+    rightMold.position.set(1.3, 1.25, 0);
+    rightMold.castShadow = true;
+    const stampedVase = new THREE.Mesh(createVaseGeometry(0.95, 32), wetClayMat);
+    stampedVase.castShadow = true;
+    stampaggioSubGroup.add(leftMold, rightMold, stampedVase);
+    step2Obj.add(stampaggioSubGroup);
+
+    // 2d) Colaggio (Brocca versa barbottina nello stampo cavo di gesso)
+    const colaggioSubGroup = new THREE.Group();
+    colaggioSubGroup.visible = false;
+    const castMoldLeft = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.4, 2.0), plasterMat);
+    castMoldLeft.position.set(-0.52, 1.2, 0);
+    const castMoldRight = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.4, 2.0), plasterMat);
+    castMoldRight.position.set(0.52, 1.2, 0);
+    const pitcher = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.52, 1.1, 24),
+      new THREE.MeshStandardMaterial({ color: 0x2b8cbe, roughness: 0.3 })
+    );
+    pitcher.position.set(1.2, 3.1, 0);
+    pitcher.rotation.z = Math.PI * 0.32;
+    const liquidStream = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.09, 1.4, 12),
+      new THREE.MeshStandardMaterial({ color: 0x9c734e, roughness: 0.2 })
+    );
+    liquidStream.position.set(0.35, 2.35, 0);
+    const castVase = new THREE.Mesh(createVaseGeometry(0.92, 32), wetClayMat);
+    castVase.visible = false;
+    colaggioSubGroup.add(castMoldLeft, castMoldRight, pitcher, liquidStream, castVase);
+    step2Obj.add(colaggioSubGroup);
+
+    // --- FASE 3: ESSICCAZIONE ---
+    const dryingBoard = new THREE.Mesh(
+      new THREE.BoxGeometry(2.8, 0.14, 2.8),
+      new THREE.MeshStandardMaterial({ color: 0xbc8a5f, roughness: 0.8 })
+    );
+    dryingBoard.position.y = 0.07;
+    dryingBoard.receiveShadow = true;
+    step3Obj.add(dryingBoard);
+
+    const dryingVaseMat = new THREE.MeshStandardMaterial({
+      color: 0x7c5330,
+      roughness: 0.4
+    });
+    const dryingVase = new THREE.Mesh(createVaseGeometry(1.05, 36), dryingVaseMat);
+    dryingVase.position.y = 0.14;
+    dryingVase.castShadow = true;
+    step3Obj.add(dryingVase);
+
+    // Crepe nascoste (appaiono solo se si fa il test esplosione forno senza essiccare)
+    const crackLinesGroup = new THREE.Group();
+    crackLinesGroup.visible = false;
+    for (let i = 0; i < 6; i++) {
+      const crack = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 1.3, 0.12),
+        new THREE.MeshBasicMaterial({ color: 0x1e293b })
+      );
+      const ang = (i / 6) * Math.PI * 2;
+      crack.position.set(Math.cos(ang) * 0.98, 1.1, Math.sin(ang) * 0.98);
+      crack.rotation.y = -ang;
+      crack.rotation.z = (i % 2 === 0 ? 0.22 : -0.22);
+      crackLinesGroup.add(crack);
+    }
+    step3Obj.add(crackLinesGroup);
+
+    // --- FASE 4: COTTURA NEL FORNO ---
+    const kilnGroup = new THREE.Group();
+    const brickMat = new THREE.MeshStandardMaterial({ color: 0xb4533c, roughness: 0.85 });
+    const refrMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7 });
+
+    // Pareti forno a vista (sezione aperta frontale per far vedere dentro)
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.2, 0.35), brickMat);
+    backWall.position.set(0, 1.6, -1.4);
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 3.0), brickMat);
+    leftWall.position.set(-1.55, 1.6, 0);
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 3.0), brickMat);
+    rightWall.position.set(1.55, 1.6, 0);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 3.1, 24, 1, false, 0, Math.PI), brickMat);
+    roof.rotation.z = Math.PI / 2;
+    roof.rotation.y = Math.PI / 2;
+    roof.position.set(0, 3.15, 0);
+    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 1.1, 16), brickMat);
+    chimney.position.set(0, 4.9, -0.3);
+    const kilnFloor = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.22, 2.8), refrMat);
+    kilnFloor.position.set(0, 0.11, 0);
+
+    kilnGroup.add(backWall, leftWall, rightWall, roof, chimney, kilnFloor);
+
+    // Bagliore termico interno
+    const fireGlowMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(2.7, 2.8, 2.4),
+      new THREE.MeshBasicMaterial({ color: 0xff4500, transparent: true, opacity: 0.0, side: THREE.BackSide })
+    );
+    fireGlowMesh.position.set(0, 1.5, -0.1);
+    kilnGroup.add(fireGlowMesh);
+
+    const kilnVaseMat = new THREE.MeshStandardMaterial({
+      color: 0xb89b7e,
+      roughness: 0.85
+    });
+    const kilnVase = new THREE.Mesh(createVaseGeometry(0.95, 36), kilnVaseMat);
+    kilnVase.position.set(0, 0.22, 0);
+    kilnVase.castShadow = true;
+    kilnGroup.add(kilnVase);
+    step4Obj.add(kilnGroup);
+
+    // --- FASE 5: SMALTATURA E SECONDA COTTURA ---
+    const glazedVaseMat = new THREE.MeshPhysicalMaterial({
+      color: 0xc85a32, // inizia come biscotto terracotta
+      roughness: 0.82,
+      metalness: 0.02,
+      clearcoat: 0.0,
+      clearcoatRoughness: 0.1
+    });
+    const glazedVase = new THREE.Mesh(createVaseGeometry(1.05, 36), glazedVaseMat);
+    glazedVase.castShadow = true;
+    step5Obj.add(glazedVase);
+
+    // Pennello 3D animato
+    const brushGroup = new THREE.Group();
+    const handleStick = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.07, 1.8, 12),
+      new THREE.MeshStandardMaterial({ color: 0x8c6239 })
+    );
+    handleStick.position.y = 1.1;
+    const bristles = new THREE.Mesh(
+      new THREE.ConeGeometry(0.16, 0.45, 16),
+      new THREE.MeshStandardMaterial({ color: 0x2b8cbe })
+    );
+    bristles.rotation.x = Math.PI;
+    bristles.position.y = 0.05;
+    brushGroup.add(handleStick, bristles);
+    brushGroup.position.set(1.5, 1.4, 0.6);
+    brushGroup.rotation.z = Math.PI * 0.25;
+    brushGroup.visible = false;
+    step5Obj.add(brushGroup);
+
+    // =========================================================================
+    // 6. MODALITÀ 2: PASTA POROSA VS PASTA COMPATTA
+    // =========================================================================
+    const terracottaCompareMat = new THREE.MeshStandardMaterial({
+      color: 0xc85a32,
+      roughness: 0.88
+    });
+    const terracottaCompareVase = new THREE.Mesh(createVaseGeometry(1.0, 36), terracottaCompareMat);
+    terracottaCompareVase.position.set(-2.1, 0, 0);
+    terracottaCompareVase.castShadow = true;
+    compareGroup.add(terracottaCompareVase);
+
+    const porcelainCompareCup = createCupGroup();
+    porcelainCompareCup.position.set(2.1, 0.05, 0);
+    porcelainCompareCup.scale.set(1.25, 1.25, 1.25);
+    compareGroup.add(porcelainCompareCup);
+
+    // Macchia bagnata sulla terracotta
+    const wetPatch = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x6e2b14, roughness: 0.95, transparent: true, opacity: 0 })
+    );
+    wetPatch.scale.set(1, 0.8, 0.35);
+    wetPatch.position.set(-2.1, 1.25, 0.95);
+    compareGroup.add(wetPatch);
+
+    // Bacchetta 3D per il test del suono
+    const testRod = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 2.2, 12),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.3 })
+    );
+    testRod.visible = false;
+    compareGroup.add(testRod);
+
+    // =========================================================================
+    // 7. MODALITÀ 3: ZOOM MICROSCOPICO 3D
+    // =========================================================================
+    let microType = 'porosa';
+    const microGranulesGroup = new THREE.Group();
+    const microRing = new THREE.Mesh(
+      new THREE.TorusGeometry(2.6, 0.16, 16, 48),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.3 })
+    );
+    microRing.position.set(0, 2.3, 0);
+    const microHandle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.22, 2.1, 16),
+      new THREE.MeshStandardMaterial({ color: 0x8c6239, roughness: 0.7 })
+    );
+    microHandle.position.set(2.4, 0.3, 0);
+    microHandle.rotation.z = Math.PI * 0.25;
+    microGroup.add(microRing, microHandle, microGranulesGroup);
+
+    function buildMicroGranules(type) {
+      while (microGranulesGroup.children.length > 0) {
+        microGranulesGroup.remove(microGranulesGroup.children[0]);
+      }
+      const isPorous = type === 'porosa';
+      const mat = new THREE.MeshStandardMaterial({
+        color: isPorous ? 0xc85a32 : 0xf1f5f9,
+        roughness: isPorous ? 0.85 : 0.18,
+        metalness: isPorous ? 0.05 : 0.15
+      });
+
+      const rows = 4;
+      const cols = 6;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const radius = isPorous ? 0.34 : 0.46;
+          const geo = isPorous
+            ? new THREE.DodecahedronGeometry(radius, 1)
+            : new THREE.SphereGeometry(radius, 20, 20);
+          const grain = new THREE.Mesh(geo, mat);
+          const spacingX = isPorous ? 0.84 : 0.72;
+          const spacingY = isPorous ? 0.78 : 0.68;
+          const offsetX = (r % 2 === 0 ? 0 : spacingX * 0.45) - ((cols - 1) * spacingX) / 2;
+          grain.position.set(
+            c * spacingX + offsetX,
+            1.1 + r * spacingY,
+            (Math.sin(r * 3 + c) * (isPorous ? 0.22 : 0.08))
+          );
+          grain.castShadow = true;
+          microGranulesGroup.add(grain);
+        }
+      }
+    }
+    buildMicroGranules('porosa');
+
+    // =========================================================================
+    // 8. MODALITÀ 4: VERIFICA IN AULA (6 OGGETTI 3D)
+    // =========================================================================
+    const quizData = [
+      {
+        name: "1. Mattone forato da costruzione",
+        type: "porosa",
+        sound: "porosa",
+        options: [
+          { text: "Pasta porosa (Terracotta) – Assorbe acqua, leggero e isolante per uso edilizio", correct: true },
+          { text: "Pasta compatta (Porcellana) – Vetrificato ad altissima temperatura e impermeabile", correct: false },
+          { text: "Argilla cruda essiccata – Non è stata cotta in forno", correct: false }
+        ],
+        explanation: "Esatto! Il mattone forato è in terracotta (pasta porosa, cotta a 900-1050 °C): la sua porosità lo rende leggero e ottimo isolante termico."
+      },
+      {
+        name: "2. Lavandino del bagno",
+        type: "compatta",
+        sound: "compatta",
+        options: [
+          { text: "Pasta porosa grezza – Lascia filtrare l'acqua attraverso i micropori", correct: false },
+          { text: "Pasta compatta (Porcellana / Vetrochina) – Impermeabile, igienica e resistente", correct: true },
+          { text: "Terracotta non smaltata – Cotta a bassa temperatura", correct: false }
+        ],
+        explanation: "Corretto! Il lavandino è a pasta compatta (porcellana/vetrochina): deve essere totalmente impermeabile all'acqua, igienico e resistente agli urti."
+      },
+      {
+        name: "3. Piastrella per pavimento",
+        type: "compatta",
+        sound: "compatta",
+        options: [
+          { text: "Pasta compatta (Gres porcellanato) – Durissima e resistente al calpestio e all'usura", correct: true },
+          { text: "Pasta porosa (Terracotta) – Morbida e facilmente scalfibile", correct: false },
+          { text: "Terraglia leggera – Assorbe liquidi e detersivi", correct: false }
+        ],
+        explanation: "Ben fatto! Le piastrelle da pavimento sono in gres (pasta compatta cotta a 1200-1400 °C) per resistere al calpestio, all'abrasione e all'acqua."
+      },
+      {
+        name: "4. Piatto decorato della cucina",
+        type: "porosa",
+        sound: "porosa",
+        options: [
+          { text: "Pasta compatta grezza – Non ha bisogno di alcun rivestimento", correct: false },
+          { text: "Pasta porosa smaltata (Maiolica / Terraglia) – Supporto poroso reso impermeabile dallo smalto", correct: true },
+          { text: "Gres industriale non smaltato – Ruvido e opaco", correct: false }
+        ],
+        explanation: "Ottimo! I piatti decorati tradizionali sono spesso in maiolica o terraglia: l'interno è a pasta porosa, ma lo smalto vetroso li rende lisci, belli e impermeabili ai cibi."
+      },
+      {
+        name: "5. Vaso grezzo da giardino",
+        type: "porosa",
+        sound: "porosa",
+        options: [
+          { text: "Pasta compatta (Porcellana) – Completamente sigillata", correct: false },
+          { text: "Pasta porosa (Terracotta) – Traspirante e leggera per le radici delle piante", correct: true },
+          { text: "Gres vetrificato – Non lascia passare aria né umidità", correct: false }
+        ],
+        explanation: "Esatto! Il vaso grezzo da giardino è in terracotta (pasta porosa): i micropori permettono alle radici di respirare e fanno evaporare l'acqua in eccesso."
+      },
+      {
+        name: "6. Tazzina da caffè espresso",
+        type: "compatta",
+        sound: "compatta",
+        options: [
+          { text: "Pasta porosa (Terracotta) – Assorbe il caffè e ha un suono sordo", correct: false },
+          { text: "Pasta compatta (Porcellana) – Resistente, impermeabile, igienica e dal suono squillante", correct: true },
+          { text: "Argilla cruda smaltata – Si scioglie con il calore", correct: false }
+        ],
+        explanation: "Perfetto! La tazzina da espresso è in porcellana (pasta compatta): trattiene il calore, non assorbe odori o macchie ed è sottile ma durissima."
+      }
+    ];
+
+    let currentQuizIdx = 0;
+    let quizScore = 0;
+    let quizAnswered = false;
+    const quizObjectHolder = new THREE.Group();
+    quizGroup.add(quizObjectHolder);
+
+    function buildQuiz3DObject(index) {
+      while (quizObjectHolder.children.length > 0) {
+        quizObjectHolder.remove(quizObjectHolder.children[0]);
+      }
+
+      if (index === 0) {
+        // 1. Mattone forato
+        const brick = new THREE.Mesh(
+          new THREE.BoxGeometry(2.4, 1.1, 1.2),
+          new THREE.MeshStandardMaterial({ color: 0xc85a32, roughness: 0.88 })
+        );
+        brick.position.y = 0.65;
+        brick.castShadow = true;
+        quizObjectHolder.add(brick);
+        // Fori passanti
+        const holeMat = new THREE.MeshBasicMaterial({ color: 0x3b180c });
+        [-0.25, 0.25].forEach(yOff => {
+          [-0.32, 0, 0.32].forEach(zOff => {
+            const hole = new THREE.Mesh(new THREE.BoxGeometry(2.44, 0.28, 0.22), holeMat);
+            hole.position.set(0, 0.65 + yOff, zOff);
+            quizObjectHolder.add(hole);
+          });
+        });
+      } else if (index === 1) {
+        // 2. Lavandino in porcellana
+        const sinkMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.1, clearcoat: 0.95 });
+        const basin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.85, 1.7), sinkMat);
+        basin.position.y = 0.65;
+        basin.castShadow = true;
+        const inner = new THREE.Mesh(
+          new THREE.BoxGeometry(2.1, 0.4, 1.25),
+          new THREE.MeshStandardMaterial({ color: 0xdbeafe, roughness: 0.15 })
+        );
+        inner.position.set(0, 0.92, 0.08);
+        const faucet = new THREE.Mesh(
+          new THREE.TorusGeometry(0.32, 0.06, 12, 24, Math.PI),
+          new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.2 })
+        );
+        faucet.position.set(0, 1.1, -0.62);
+        quizObjectHolder.add(basin, inner, faucet);
+      } else if (index === 2) {
+        // 3. Piastrella per pavimento (Gres)
+        const tile = new THREE.Mesh(
+          new THREE.BoxGeometry(2.3, 0.18, 2.3),
+          new THREE.MeshPhysicalMaterial({ color: 0x64748b, roughness: 0.22, clearcoat: 0.6 })
+        );
+        tile.position.set(0, 0.8, 0);
+        tile.rotation.x = 0.35;
+        tile.castShadow = true;
+        quizObjectHolder.add(tile);
+      } else if (index === 3) {
+        // 4. Piatto decorato (Maiolica)
+        const platePts = [
+          new THREE.Vector2(0, 0),
+          new THREE.Vector2(0.85, 0),
+          new THREE.Vector2(1.45, 0.28),
+          new THREE.Vector2(1.42, 0.33),
+          new THREE.Vector2(0.82, 0.07),
+          new THREE.Vector2(0, 0.07)
+        ];
+        const plateMat = new THREE.MeshPhysicalMaterial({ color: 0xfefce8, roughness: 0.15, clearcoat: 0.85 });
+        const plate = new THREE.Mesh(new THREE.LatheGeometry(platePts, 36), plateMat);
+        plate.position.y = 0.7;
+        plate.rotation.x = 0.45;
+        plate.castShadow = true;
+        // Bordo decorato blu cobalto
+        const decorRing = new THREE.Mesh(
+          new THREE.TorusGeometry(1.15, 0.045, 12, 36),
+          new THREE.MeshStandardMaterial({ color: 0x1d4ed8 })
+        );
+        decorRing.rotation.x = Math.PI / 2 + 0.45;
+        decorRing.position.set(0, 0.85, 0.07);
+        quizObjectHolder.add(plate, decorRing);
+      } else if (index === 4) {
+        // 5. Vaso grezzo da giardino
+        const potPts = [
+          new THREE.Vector2(0, 0),
+          new THREE.Vector2(0.75, 0),
+          new THREE.Vector2(1.05, 1.65),
+          new THREE.Vector2(1.15, 1.65),
+          new THREE.Vector2(1.15, 1.95),
+          new THREE.Vector2(0.95, 1.95),
+          new THREE.Vector2(0.68, 0.18),
+          new THREE.Vector2(0, 0.18)
+        ];
+        const pot = new THREE.Mesh(
+          new THREE.LatheGeometry(potPts, 32),
+          new THREE.MeshStandardMaterial({ color: 0xc85a32, roughness: 0.92 })
+        );
+        pot.castShadow = true;
+        quizObjectHolder.add(pot);
+      } else {
+        // 6. Tazzina da espresso
+        const cup = createCupGroup();
+        cup.scale.set(1.2, 1.2, 1.2);
+        cup.position.y = 0.06;
+        quizObjectHolder.add(cup);
+      }
+    }
+
+    // =========================================================================
+    // 9. GESTIONE CAMBIO MODALITÀ E AGGIORNAMENTO INDICATORI
+    // =========================================================================
+    function showFeedbackBanner(text, duration = 3800) {
+      const box = document.getElementById('canvas-feedback');
+      box.innerHTML = text;
+      box.classList.remove('hidden');
+      clearTimeout(box._timer);
+      box._timer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, duration);
+    }
+
+    function updateIndicators(temp, humidity, plasticity, hardness, porosity) {
+      document.getElementById('stat-temp').textContent = temp;
+      document.getElementById('stat-humidity').textContent = humidity;
+      document.getElementById('stat-plasticity').textContent = plasticity;
+      document.getElementById('stat-hardness').textContent = hardness;
+      document.getElementById('stat-porosity').textContent = porosity;
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      stopAutoTour();
+
+      // Aggiorna tab attivi
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.remove('bg-terracotta', 'text-white', 'shadow');
+        btn.classList.add('text-slate-300');
+      });
+      const activeTab = document.getElementById('nav-' + mode);
+      activeTab.classList.add('bg-terracotta', 'text-white', 'shadow');
+      activeTab.classList.remove('text-slate-300');
+
+      // Mostra pannello corrispondente
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('panel-' + mode).classList.remove('hidden');
+
+      // Visibilità gruppi 3D
+      cycleGroup.visible = (mode === 'cycle');
+      compareGroup.visible = (mode === 'compare');
+      microGroup.visible = (mode === 'micro');
+      quizGroup.visible = (mode === 'quiz');
+      workbenchGroup.visible = (mode !== 'micro');
+
+      if (mode === 'cycle') {
+        setCycleStep(currentStep);
+      } else if (mode === 'compare') {
+        document.getElementById('scene-title-overlay').textContent = "Confronto: Pasta Porosa (sx) vs Pasta Compatta (dx)";
+        updateIndicators("1000 / 1300 °C", "0%", "Irreversibile", "Alta / Altissima", "Porosa vs Nullo");
+        camera.position.set(0, 3.8, 8.6);
+        controls.target.set(0, 1.1, 0);
+      } else if (mode === 'micro') {
+        document.getElementById('scene-title-overlay').textContent = "Microscopio 3D: Struttura Interna dei Granuli";
+        setMicroStructure(microType);
+        camera.position.set(0, 2.5, 7.6);
+        controls.target.set(0, 2.2, 0);
+      } else if (mode === 'quiz') {
+        document.getElementById('scene-title-overlay').textContent = "Sfida Interattiva: Riconosci i 6 Oggetti Ceramici";
+        loadQuizQuestion(currentQuizIdx);
+        camera.position.set(0, 3.4, 6.8);
+        controls.target.set(0, 1.0, 0);
+      }
+    }
+
+    // =========================================================================
+    // 10. LOGICA INTERATTIVA DELLE 5 FASI DEL CICLO
+    // =========================================================================
+    function setCycleStep(step) {
+      currentStep = step;
+
+      // Aggiorna bottoni step 1..5
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.getElementById('step-btn-' + i);
+        const ctrl = document.getElementById('step-controls-' + i);
+        if (i === step) {
+          btn.classList.add('border-terracotta', 'bg-terracotta', 'text-white');
+          btn.classList.remove('border-slate-200', 'bg-crema', 'text-lavagna');
+          ctrl.classList.remove('hidden');
+        } else {
+          btn.classList.remove('border-terracotta', 'bg-terracotta', 'text-white');
+          btn.classList.add('border-slate-200', 'bg-crema', 'text-lavagna');
+          ctrl.classList.add('hidden');
+        }
+      }
+
+      document.getElementById('step-counter-text').textContent = `Fase ${step} di 5`;
+      document.getElementById('btn-prev-step').disabled = (step === 1);
+      document.getElementById('btn-next-step').textContent = (step === 5) ? "Vai al Confronto →" : "Fase Successiva →";
+
+      step1Obj.visible = (step === 1);
+      step2Obj.visible = (step === 2);
+      step3Obj.visible = (step === 3);
+      step4Obj.visible = (step === 4);
+      step5Obj.visible = (step === 5);
+
+      const titles = [
+        "",
+        "Fase 1: Impasto – Argilla + Acqua = Plasticità",
+        "Fase 2: Formatura – Modellazione dell'Impasto",
+        "Fase 3: Essiccazione – Evaporazione e Ritiro",
+        "Fase 4: Cottura nel Forno – Trasformazione Irreversibile",
+        "Fase 5: Smaltatura e Seconda Cottura"
+      ];
+      document.getElementById('scene-title-overlay').textContent = titles[step];
+
+      if (step === 1) updateWaterMixing(cycleState.waterPct);
+      if (step === 2) updateFormingProgress(cycleState.formingProgress);
+      if (step === 3) updateDryingProgress(cycleState.dryingProgress);
+      if (step === 4) updateKilnTemp(cycleState.kilnTemp);
+      if (step === 5) {
+        updateIndicators(
+          cycleState.secondFired ? "980 °C (2ª Cottura)" : "20 °C (Biscotto)",
+          "0%",
+          "Irreversibile",
+          "Dura & Vetrosa",
+          cycleState.secondFired ? "Impermeabile" : "Porosa (Biscotto)"
+        );
+      }
+    }
+
+    function prevCycleStep() {
+      if (currentStep > 1) setCycleStep(currentStep - 1);
+    }
+    function nextCycleStep() {
+      if (currentStep < 5) setCycleStep(currentStep + 1);
+      else switchMode('compare');
+    }
+
+    // Tour automatico continuo delle 5 fasi
+    function toggleAutoTour() {
+      if (autoTourActive) {
+        stopAutoTour();
+      } else {
+        autoTourActive = true;
+        document.getElementById('autotour-label').textContent = "Ferma Ciclo";
+        runAutoTourSequence();
+      }
+    }
+    function stopAutoTour() {
+      autoTourActive = false;
+      clearTimeout(autoTourTimer);
+      const lbl = document.getElementById('autotour-label');
+      if (lbl) lbl.textContent = "Avvia Ciclo Continuo";
+    }
+    function runAutoTourSequence() {
+      if (!autoTourActive) return;
+      setCycleStep(1);
+      animateAddWater();
+      autoTourTimer = setTimeout(() => {
+        if (!autoTourActive) return;
+        setCycleStep(2);
+        animateForming();
+        autoTourTimer = setTimeout(() => {
+          if (!autoTourActive) return;
+          setCycleStep(3);
+          animateDrying();
+          autoTourTimer = setTimeout(() => {
+            if (!autoTourActive) return;
+            setCycleStep(4);
+            animateKilnTo(1000);
+            autoTourTimer = setTimeout(() => {
+              if (!autoTourActive) return;
+              setCycleStep(5);
+              animateApplyGlaze();
+              setTimeout(() => { if (autoTourActive) animateSecondFiring(); }, 1600);
+              autoTourTimer = setTimeout(() => stopAutoTour(), 3600);
+            }, 3400);
+          }, 3200);
+        }, 3200);
+      }, 3000);
+    }
+
+    // --- Azioni Fase 1: Impasto ---
+    function updateWaterMixing(val) {
+      const pct = parseInt(val);
+      cycleState.waterPct = pct;
+      document.getElementById('slider-water').value = pct;
+      document.getElementById('water-val-label').textContent = pct + "%";
+
+      const t = (pct - 2) / 23; // 0 -> 1
+      // Interpola colore da argilla secca (#b59472) a fango plastico scuro (#754c29)
+      const cDry = new THREE.Color(0xb59472);
+      const cWet = new THREE.Color(0x754c29);
+      step1ClayMat.color.copy(cDry).lerp(cWet, t);
+      step1ClayMat.roughness = 0.96 - t * 0.62;
+      step1ClayMat.flatShading = (t < 0.55);
+      step1ClayMat.needsUpdate = true;
+
+      // Leviga la forma man mano che diventa plastica
+      const pos = clayLumpGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const ox = origPositions[i * 3];
+        const oy = origPositions[i * 3 + 1];
+        const oz = origPositions[i * 3 + 2];
+        const len = Math.hypot(ox, oy * 1.35, oz) || 1;
+        const sx = (ox / len) * 1.1;
+        const sy = (oy / len) * 0.85;
+        const sz = (oz / len) * 1.1;
+        pos.setXYZ(i, ox + (sx - ox) * t, oy + (sy - oy) * t, oz + (sz - oz) * t);
+      }
+      pos.needsUpdate = true;
+      clayLumpGeo.computeVertexNormals();
+      crumbsGroup.visible = (t < 0.45);
+
+      updateIndicators(
+        "20 °C",
+        pct + "%",
+        t > 0.65 ? "Alta (Modellabile)" : (t > 0.25 ? "Media" : "Nulla (Secca)"),
+        t > 0.65 ? "Morbida" : "Friabile",
+        t > 0.65 ? "Impasto coeso" : "Incoerente"
+      );
+    }
+
+    function animateAddWater() {
+      playCeramicSound('water');
+      // Crea gocce d'acqua 3D che cadono sulla massa d'argilla
+      for (let i = 0; i < 16; i++) {
+        const drop = new THREE.Mesh(
+          new THREE.SphereGeometry(0.08, 10, 10),
+          new THREE.MeshStandardMaterial({ color: 0x2b8cbe, roughness: 0.1 })
+        );
+        drop.position.set((Math.random() - 0.5) * 1.3, 2.8 + Math.random() * 1.5, (Math.random() - 0.5) * 1.3);
+        scene.add(drop);
+        particles.push({
+          mesh: drop,
+          vy: -0.08 - Math.random() * 0.04,
+          life: 45,
+          type: 'drop'
+        });
+      }
+      let cur = cycleState.waterPct;
+      const iv = setInterval(() => {
+        cur += 1;
+        updateWaterMixing(Math.min(cur, 25));
+        if (cur >= 25) {
+          clearInterval(iv);
+          showFeedbackBanner("💧 <b>Plasticità raggiunta!</b> Con il 25% di acqua, l'argilla è morbida e mantiene la forma impressa.");
+        }
+      }, 45);
+    }
+
+    function resetWaterMixing() {
+      updateWaterMixing(2);
+    }
+
+    // --- Azioni Fase 2: Formatura ---
+    function setFormingTech(tech) {
+      cycleState.formingTech = tech;
+      document.querySelectorAll('.tech-btn').forEach(b => {
+        b.classList.remove('border-terracotta', 'bg-terracotta/10');
+        b.classList.add('border-slate-200', 'bg-white');
+      });
+      const activeBtn = document.getElementById('tech-' + tech);
+      activeBtn.classList.add('border-terracotta', 'bg-terracotta/10');
+      activeBtn.classList.remove('border-slate-200', 'bg-white');
+
+      tornioSubGroup.visible = (tech === 'tornio');
+      colombinoSubGroup.visible = (tech === 'colombino');
+      stampaggioSubGroup.visible = (tech === 'stampaggio');
+      colaggioSubGroup.visible = (tech === 'colaggio');
+
+      const labels = {
+        tornio: "👐 Modella al Tornio",
+        colombino: "🐍 Costruisci a Colombino",
+        stampaggio: "🧱 Pressa nello Stampo",
+        colaggio: "🫗 Versa la Barbottina"
+      };
+      document.getElementById('btn-animate-forming').innerHTML = `<span>${labels[tech]}</span>`;
+      updateFormingProgress(0);
+    }
+
+    function updateFormingProgress(val) {
+      const pct = parseInt(val);
+      cycleState.formingProgress = pct;
+      document.getElementById('slider-forming').value = pct;
+      document.getElementById('forming-pct-label').textContent = pct + "%";
+      const t = pct / 100;
+
+      if (cycleState.formingTech === 'tornio') {
+        const pos = tornioVaseGeo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const sx = tornioStartCoords[i * 3];
+          const sy = tornioStartCoords[i * 3 + 1];
+          const sz = tornioStartCoords[i * 3 + 2];
+          const tx = tornioTargetCoords[i * 3];
+          const ty = tornioTargetCoords[i * 3 + 1];
+          const tz = tornioTargetCoords[i * 3 + 2];
+          pos.setXYZ(i, sx + (tx - sx) * t, sy + (ty - sy) * t, sz + (tz - sz) * t);
+        }
+        pos.needsUpdate = true;
+        tornioVaseGeo.computeVertexNormals();
+      } else if (cycleState.formingTech === 'colombino') {
+        const visibleCount = Math.round(t * coilRings.length);
+        coilRings.forEach((ring, idx) => {
+          ring.visible = idx < visibleCount;
+        });
+      } else if (cycleState.formingTech === 'stampaggio') {
+        // I semistampi chiudono fino a t=0.5, poi si aprono rivelando il vaso
+        if (t < 0.5) {
+          const closeT = t * 2;
+          leftMold.position.x = -1.4 + closeT * 0.85;
+          rightMold.position.x = 1.4 - closeT * 0.85;
+          stampedVase.scale.set(1, 0.4 + closeT * 0.6, 1);
+        } else {
+          const openT = (t - 0.5) * 2;
+          leftMold.position.x = -0.55 - openT * 1.1;
+          rightMold.position.x = 0.55 + openT * 1.1;
+          stampedVase.scale.set(1, 1, 1);
+        }
+      } else if (cycleState.formingTech === 'colaggio') {
+        if (t < 0.55) {
+          castMoldLeft.position.x = -0.52;
+          castMoldRight.position.x = 0.52;
+          liquidStream.visible = (t > 0.05);
+          castVase.visible = false;
+        } else {
+          const openT = (t - 0.55) / 0.45;
+          liquidStream.visible = false;
+          castMoldLeft.position.x = -0.52 - openT * 1.1;
+          castMoldRight.position.x = 0.52 + openT * 1.1;
+          castVase.visible = true;
+        }
+      }
+
+      updateIndicators("20 °C", "24%", "Alta (Plastica)", "Morbida", "Impasto umido");
+    }
+
+    function animateForming() {
+      let cur = 0;
+      updateFormingProgress(0);
+      const iv = setInterval(() => {
+        cur += 3;
+        updateFormingProgress(Math.min(cur, 100));
+        if (cur >= 100) clearInterval(iv);
+      }, 35);
+    }
+
+    // --- Azioni Fase 3: Essiccazione ---
+    function updateDryingProgress(val) {
+      const pct = parseInt(val);
+      cycleState.dryingProgress = pct;
+      document.getElementById('slider-drying').value = pct;
+      document.getElementById('drying-pct-label').textContent = pct + "%";
+      crackLinesGroup.visible = false;
+
+      const t = pct / 100;
+      const humidity = Math.round(25 - t * 23);
+
+      // Schiarimento colore da fango scuro a terra cruda chiara + leggero ritiro volumetrico (8%)
+      const wetCol = new THREE.Color(0x7c5330);
+      const dryCol = new THREE.Color(0xc2a382);
+      dryingVaseMat.color.copy(wetCol).lerp(dryCol, t);
+      dryingVaseMat.roughness = 0.4 + t * 0.52;
+
+      const shrink = 1 - t * 0.08;
+      dryingVase.scale.set(shrink, shrink, shrink);
+
+      updateIndicators(
+        "25 °C (Aria)",
+        humidity + "%",
+        t > 0.7 ? "Rigida (Cruda)" : "Ancora umida",
+        t > 0.7 ? "Media (Fragile)" : "Morbida",
+        "Pori aperti"
+      );
+    }
+
+    function animateDrying() {
+      let cur = cycleState.dryingProgress;
+      if (cur >= 100) cur = 0;
+      const iv = setInterval(() => {
+        cur += 3;
+        updateDryingProgress(Math.min(cur, 100));
+        // Particelle di vapore che salgono
+        if (cur % 9 === 0) {
+          const steam = new THREE.Mesh(
+            new THREE.SphereGeometry(0.11, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 })
+          );
+          steam.position.set((Math.random() - 0.5) * 1.1, 1.8, (Math.random() - 0.5) * 1.1);
+          scene.add(steam);
+          particles.push({ mesh: steam, vy: 0.04, life: 40, type: 'steam' });
+        }
+        if (cur >= 100) {
+          clearInterval(iv);
+          showFeedbackBanner("💨 <b>Essiccazione completata!</b> L'acqua è evaporata e il vaso ha subito il ritiro naturale: ora può entrare in forno in sicurezza.");
+        }
+      }, 45);
+    }
+
+    function testKilnExplosion() {
+      if (cycleState.dryingProgress >= 80) {
+        showFeedbackBanner("✅ <b>Nessun pericolo!</b> Il vaso è già ben essiccato (umidità 2%) e può essere cotto senza rompersi.");
+        return;
+      }
+      playCeramicSound('crack');
+      crackLinesGroup.visible = true;
+      showFeedbackBanner("⚠️ <b>Crepe da vapore!</b> Se un oggetto umido entra in forno, l'acqua evapora bruscamente facendo spaccare o esplodere il pezzo!");
+    }
+
+    // --- Azioni Fase 4: Cottura ---
+    function updateKilnTemp(val) {
+      const temp = parseInt(val);
+      cycleState.kilnTemp = temp;
+      document.getElementById('slider-kiln').value = temp;
+      document.getElementById('kiln-temp-label').textContent = temp + " °C";
+
+      // Bagliore termico del forno
+      const heat = Math.max(0, (temp - 300) / 1100);
+      fireGlowMesh.material.opacity = heat * 0.42;
+      kilnPointLight.intensity = heat * 2.8;
+
+      if (temp < 900) {
+        kilnVaseMat.color.setHex(0xb89b7e);
+        kilnVaseMat.roughness = 0.88;
+        updateIndicators(temp + " °C", "0%", "Incompleta (<900°C)", "Bassa", "Porosa");
+      } else if (temp <= 1100) {
+        // Biscotto / Terracotta (Pasta Porosa)
+        kilnVaseMat.color.setHex(0xc85a32);
+        kilnVaseMat.roughness = 0.82;
+        updateIndicators(temp + " °C", "0%", "Irreversibile", "Dura ma fragile", "Pasta Porosa");
+      } else {
+        // Vetrificazione (Pasta Compatta)
+        kilnVaseMat.color.setHex(0xf1f5f9);
+        kilnVaseMat.roughness = 0.25;
+        updateIndicators(temp + " °C", "0%", "Irreversibile", "Durissima", "Pasta Compatta");
+      }
+    }
+
+    function animateKilnTo(targetTemp) {
+      let cur = cycleState.kilnTemp;
+      const step = targetTemp > cur ? 25 : -25;
+      const iv = setInterval(() => {
+        cur += step;
+        if ((step > 0 && cur >= targetTemp) || (step < 0 && cur <= targetTemp)) {
+          cur = targetTemp;
+          clearInterval(iv);
+          if (targetTemp >= 1200) {
+            showFeedbackBanner("⚡ <b>1300 °C – Vetrificazione!</b> I granuli si sono fusi: hai ottenuto una ceramica a <b>Pasta Compatta</b> (gres/porcellana).");
+          } else {
+            showFeedbackBanner("🔥 <b>1000 °C – Trasformazione irreversibile!</b> Hai ottenuto il <b>Biscotto</b> (terracotta a <b>Pasta Porosa</b>).");
+          }
+        }
+        updateKilnTemp(cur);
+      }, 30);
+    }
+
+    function testPostFiringWater() {
+      playCeramicSound('water');
+      if (cycleState.kilnTemp < 900) {
+        showFeedbackBanner("⚠️ Sotto i 900 °C la cottura non è completa! Porta il forno almeno a 1000 °C per rendere irreversibile la trasformazione.");
+      } else {
+        showFeedbackBanner("💧 <b>Trasformazione irreversibile!</b> Anche a contatto con l'acqua, la ceramica cotta oltre 900 °C non torna più fango!");
+      }
+    }
+
+    function testPostFiringHammer() {
+      playCeramicSound('crack');
+      // Piccolo tremolio del vaso per simulare l'urto
+      const origX = kilnVase.position.x;
+      kilnVase.position.x = origX + 0.12;
+      setTimeout(() => { kilnVase.position.x = origX - 0.12; }, 60);
+      setTimeout(() => { kilnVase.position.x = origX; }, 120);
+      showFeedbackBanner("🔨 <b>Dura ma fragile!</b> La ceramica non è elastica: resiste al calore e agli acidi, ma se subisce un urto forte si rompe di netto.");
+    }
+
+    // --- Azioni Fase 5: Smaltatura ---
+    function setGlazeColor(hex) {
+      cycleState.glazeColor = hex;
+      bristles.material.color.set(hex);
+      if (cycleState.glazeApplied) {
+        glazedVaseMat.color.set(hex);
+      }
+    }
+
+    function animateApplyGlaze() {
+      brushGroup.visible = true;
+      cycleState.glazeApplied = true;
+      let progress = 0;
+      const iv = setInterval(() => {
+        progress += 0.08;
+        brushGroup.position.y = 0.6 + Math.sin(progress * Math.PI) * 1.4;
+        brushGroup.position.x = 1.25 + Math.cos(progress * 6) * 0.25;
+        if (progress >= 1) {
+          clearInterval(iv);
+          brushGroup.visible = false;
+          glazedVaseMat.color.set(cycleState.glazeColor);
+          glazedVaseMat.roughness = 0.55; // ancora polvere vetrosa cruda
+          showFeedbackBanner("🖌️ <b>Smalto applicato!</b> Ora avvia la <b>Seconda Cottura</b> per fondere lo smalto e renderlo lucido e impermeabile.");
+        }
+      }, 45);
+    }
+
+    function animateSecondFiring() {
+      if (!cycleState.glazeApplied) {
+        animateApplyGlaze();
+        setTimeout(animateSecondFiring, 700);
+        return;
+      }
+      cycleState.secondFired = true;
+      glazedVaseMat.roughness = 0.08;
+      glazedVaseMat.clearcoat = 1.0;
+      glazedVaseMat.clearcoatRoughness = 0.05;
+      updateIndicators("980 °C (2ª Cottura)", "0%", "Irreversibile", "Dura & Vetrosa", "Impermeabile (Smaltata)");
+      showFeedbackBanner("✨ <b>Seconda cottura completata!</b> Lo smalto si è fuso formando uno strato vetroso lucido, igienico e impermeabile.");
+    }
+
+    // =========================================================================
+    // 11. LOGICA MODALITÀ 2: ESPERIMENTI CONFRONTO POROSA VS COMPATTA
+    // =========================================================================
+    function runWaterDropTest() {
+      playCeramicSound('water');
+      wetPatch.material.opacity = 0;
+
+      // Gocce sul vaso in terracotta (sinistra) -> assorbite
+      for (let i = 0; i < 6; i++) {
+        const dropL = new THREE.Mesh(
+          new THREE.SphereGeometry(0.08, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x2b8cbe })
+        );
+        dropL.position.set(-2.1 + (Math.random() - 0.5) * 0.3, 2.7 + i * 0.25, 0.92);
+        scene.add(dropL);
+        particles.push({ mesh: dropL, vy: -0.07, life: 32, type: 'absorb' });
+      }
+
+      // Gocce sulla tazzina in porcellana (destra) -> rimbalzano e scivolano via
+      for (let i = 0; i < 6; i++) {
+        const dropR = new THREE.Mesh(
+          new THREE.SphereGeometry(0.08, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x2b8cbe })
+        );
+        dropR.position.set(2.1 + (Math.random() - 0.5) * 0.3, 2.7 + i * 0.25, 0.45);
+        scene.add(dropR);
+        particles.push({
+          mesh: dropR,
+          vx: 0.03 + Math.random() * 0.02,
+          vy: -0.07,
+          vz: 0.04,
+          life: 48,
+          type: 'repel'
+        });
+      }
+
+      setTimeout(() => {
+        wetPatch.material.opacity = 0.78;
+        showFeedbackBanner("💧 <b>Risultato:</b> La <b>Terracotta</b> (pasta porosa) assorbe l'acqua scurendosi; la <b>Porcellana</b> (pasta compatta) è impermeabile e respinge le gocce!");
+      }, 650);
+    }
+
+    function runSoundRodTest() {
+      testRod.visible = true;
+      // Colpisce prima la terracotta (suono sordo)
+      testRod.position.set(-1.0, 1.3, 0.8);
+      testRod.rotation.z = 0.55;
+      playCeramicSound('porosa');
+      spawnSoundWave(-2.1, 1.2, 0, 0xc85a32);
+
+      // Dopo 900ms colpisce la porcellana (suono squillante)
+      setTimeout(() => {
+        testRod.position.set(1.0, 1.1, 0.8);
+        testRod.rotation.z = -0.55;
+        playCeramicSound('compatta');
+        spawnSoundWave(2.1, 1.0, 0, 0x2b8cbe);
+        showFeedbackBanner("🔔 <b>Ascolta la differenza:</b> La pasta porosa emette un <b>suono sordo</b>; la pasta compatta emette un <b>suono squillante</b>!");
+      }, 900);
+
+      setTimeout(() => {
+        testRod.visible = false;
+      }, 1900);
+    }
+
+    function spawnSoundWave(x, y, z, colorHex) {
+      const wave = new THREE.Mesh(
+        new THREE.RingGeometry(0.3, 0.42, 32),
+        new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      );
+      wave.position.set(x, y, z);
+      scene.add(wave);
+      particles.push({ mesh: wave, life: 35, type: 'wave' });
+    }
+
+    // =========================================================================
+    // 12. LOGICA MODALITÀ 3: ZOOM MICROSCOPICO 3D
+    // =========================================================================
+    function setMicroStructure(type) {
+      microType = type;
+      buildMicroGranules(type);
+
+      const btnP = document.getElementById('micro-btn-porosa');
+      const btnC = document.getElementById('micro-btn-compatta');
+      const expBox = document.getElementById('micro-explanation-box');
+
+      if (type === 'porosa') {
+        btnP.classList.add('border-terracotta', 'bg-terracotta/10');
+        btnP.classList.remove('border-slate-200', 'bg-crema');
+        btnC.classList.remove('border-acqua', 'bg-acqua/10');
+        btnC.classList.add('border-slate-200', 'bg-crema');
+
+        updateIndicators("900–1050 °C", "Assorbe", "Non vetrificata", "Media", "Micropori aperti");
+        expBox.innerHTML = `
+          <div class="font-bold text-terracotta-dark">Cosa osservi ora (Pasta Porosa):</div>
+          <p>A 900-1050 °C i granuli di argilla si saldano nei punti di contatto, ma restano <strong>spazi vuoti (micropori)</strong>. Le sfere d'acqua riescono a penetrare in profondità: per renderla impermeabile serve lo <strong>smalto</strong>!</p>
+        `;
+      } else {
+        btnC.classList.add('border-acqua', 'bg-acqua/10');
+        btnC.classList.remove('border-slate-200', 'bg-crema');
+        btnP.classList.remove('border-terracotta', 'bg-terracotta/10');
+        btnP.classList.add('border-slate-200', 'bg-crema');
+
+        updateIndicators("1200–1400 °C", "0% (Impermeabile)", "Vetrificata", "Altissima", "Nulla (Granuli fusi)");
+        expBox.innerHTML = `
+          <div class="font-bold text-acqua-dark">Cosa osservi ora (Pasta Compatta):</div>
+          <p>A 1200-1400 °C i minerali fondenti <strong>vetrificano</strong> chiudendo completamente gli spazi tra i granuli. L'acqua non trova varchi e scivola via in superficie anche senza smalto!</p>
+        `;
+      }
+    }
+
+    function spawnMicroWaterMolecules() {
+      playCeramicSound('water');
+      for (let i = 0; i < 14; i++) {
+        const mol = new THREE.Mesh(
+          new THREE.SphereGeometry(0.11, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x2b8cbe, roughness: 0.1 })
+        );
+        mol.position.set((Math.random() - 0.5) * 3.2, 4.3 + Math.random() * 0.8, (Math.random() - 0.5) * 0.4);
+        scene.add(mol);
+        particles.push({
+          mesh: mol,
+          vy: -0.055,
+          vx: (Math.random() - 0.5) * 0.02,
+          life: 65,
+          type: microType === 'porosa' ? 'micro-pass' : 'micro-block'
+        });
+      }
+    }
+
+    // =========================================================================
+    // 13. LOGICA MODALITÀ 4: VERIFICA INTERATTIVA IN AULA
+    // =========================================================================
+    function loadQuizQuestion(idx) {
+      currentQuizIdx = idx;
+      quizAnswered = false;
+      buildQuiz3DObject(idx);
+
+      const q = quizData[idx];
+      document.getElementById('quiz-card').classList.remove('hidden');
+      document.getElementById('quiz-summary').classList.add('hidden');
+      document.getElementById('quiz-item-number').textContent = `Oggetto ${idx + 1} di ${quizData.length}`;
+      document.getElementById('quiz-item-name').textContent = q.name;
+      document.getElementById('quiz-feedback').classList.add('hidden');
+      document.getElementById('btn-quiz-next').classList.add('hidden');
+
+      // Aggiorna pallini progresso
+      const dots = document.getElementById('quiz-progress-dots').children;
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].className = "h-2 flex-1 rounded-full " + (i <= idx ? "bg-terracotta" : "bg-slate-200");
+      }
+
+      const optsContainer = document.getElementById('quiz-options');
+      optsContainer.innerHTML = '';
+      q.options.forEach((opt, oIdx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-2.5 rounded-xl border-2 border-slate-200 bg-white hover:border-terracotta text-xs font-semibold text-lavagna transition";
+        btn.textContent = opt.text;
+        btn.onclick = () => selectQuizAnswer(btn, opt.correct, q.explanation);
+        optsContainer.appendChild(btn);
+      });
+
+      updateIndicators("Test in corso", "—", "—", "—", "Classifica l'oggetto");
+    }
+
+    function selectQuizAnswer(clickedBtn, isCorrect, explanation) {
+      if (quizAnswered) return;
+      quizAnswered = true;
+
+      const fb = document.getElementById('quiz-feedback');
+      fb.classList.remove('hidden');
+
+      if (isCorrect) {
+        quizScore++;
+        clickedBtn.classList.remove('border-slate-200', 'bg-white');
+        clickedBtn.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-900');
+        fb.className = "p-3 rounded-xl text-xs font-medium bg-emerald-100 text-emerald-900 border border-emerald-300";
+        fb.innerHTML = "✅ " + explanation;
+        playCeramicSound('compatta');
+      } else {
+        clickedBtn.classList.remove('border-slate-200', 'bg-white');
+        clickedBtn.classList.add('border-rose-600', 'bg-rose-50', 'text-rose-900');
+        fb.className = "p-3 rounded-xl text-xs font-medium bg-rose-100 text-rose-900 border border-rose-300";
+        fb.innerHTML = "❌ Non esattamente! " + explanation;
+        playCeramicSound('porosa');
+      }
+
+      document.getElementById('quiz-score-badge').textContent = `Punti: ${quizScore} / ${quizData.length}`;
+      const nextBtn = document.getElementById('btn-quiz-next');
+      nextBtn.classList.remove('hidden');
+      nextBtn.textContent = (currentQuizIdx < quizData.length - 1) ? "Prossimo Oggetto →" : "Vedi Risultato Finale 🏆";
+    }
+
+    function nextQuizQuestion() {
+      if (currentQuizIdx < quizData.length - 1) {
+        loadQuizQuestion(currentQuizIdx + 1);
+      } else {
+        document.getElementById('quiz-card').classList.add('hidden');
+        document.getElementById('quiz-summary').classList.remove('hidden');
+        document.getElementById('quiz-final-text').textContent =
+          `Hai classificato correttamente ${quizScore} oggetti su ${quizData.length}!`;
+      }
+    }
+
+    function restartQuiz() {
+      quizScore = 0;
+      document.getElementById('quiz-score-badge').textContent = `Punti: 0 / ${quizData.length}`;
+      loadQuizQuestion(0);
+    }
+
+    function testQuizObjectWater() {
+      const q = quizData[currentQuizIdx];
+      playCeramicSound('water');
+      for (let i = 0; i < 6; i++) {
+        const drop = new THREE.Mesh(
+          new THREE.SphereGeometry(0.08, 10, 10),
+          new THREE.MeshStandardMaterial({ color: 0x2b8cbe })
+        );
+        drop.position.set((Math.random() - 0.5) * 0.5, 2.5 + i * 0.2, 0.2);
+        scene.add(drop);
+        particles.push({
+          mesh: drop,
+          vy: -0.065,
+          vx: q.type === 'compatta' ? 0.04 : 0,
+          life: 36,
+          type: q.type === 'compatta' ? 'repel' : 'absorb'
+        });
+      }
+      if (q.type === 'porosa') {
+        showFeedbackBanner("💧 Indizio: l'acqua tende ad essere assorbita dall'impasto (o trattenuta solo dallo smalto)!");
+      } else {
+        showFeedbackBanner("💧 Indizio: le gocce d'acqua rimbalzano e scivolano via sulla superficie compatta!");
+      }
+    }
+
+    function testQuizObjectSound() {
+      const q = quizData[currentQuizIdx];
+      playCeramicSound(q.sound);
+      spawnSoundWave(0, 1.0, 0.6, q.sound === 'compatta' ? 0x2b8cbe : 0xc85a32);
+      showFeedbackBanner(q.sound === 'compatta'
+        ? "🔔 Indizio: il suono è squillante e cristallino!"
+        : "🔔 Indizio: il suono è sordo e opaco!");
+    }
+
+    // =========================================================================
+    // 14. LOOP DI ANIMAZIONE 60FPS & GESTIONE RESIZE
+    // =========================================================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+
+      // Rotazione continua del tornio nella Fase 2
+      if (currentMode === 'cycle' && currentStep === 2 && cycleState.formingTech === 'tornio') {
+        wheelDisc.rotation.y += delta * 6.5;
+        tornioVaseMesh.rotation.y += delta * 6.5;
+      }
+
+      // Rotazione lenta dimostrativa nella Fase 5 e nel Quiz
+      if (currentMode === 'cycle' && currentStep === 5) {
+        glazedVase.rotation.y += delta * 0.5;
+      }
+      if (currentMode === 'quiz') {
+        quizObjectHolder.rotation.y += delta * 0.65;
+      }
+
+      // Aggiornamento particelle 3D (gocce, vapore, onde sonore, molecole)
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life--;
+
+        if (p.type === 'drop' || p.type === 'absorb') {
+          p.mesh.position.y += p.vy;
+          if (p.mesh.position.y < 0.8) p.life = 0;
+        } else if (p.type === 'repel') {
+          p.mesh.position.y += p.vy;
+          if (p.mesh.position.y < 1.35) {
+            p.mesh.position.x += (p.vx || 0.03);
+            p.mesh.position.z += (p.vz || 0.03);
+          }
+        } else if (p.type === 'steam') {
+          p.mesh.position.y += p.vy;
+          p.mesh.scale.multiplyScalar(1.02);
+          p.mesh.material.opacity *= 0.96;
+        } else if (p.type === 'wave') {
+          p.mesh.scale.multiplyScalar(1.07);
+          p.mesh.material.opacity *= 0.93;
+        } else if (p.type === 'micro-pass') {
+          p.mesh.position.y += p.vy;
+          p.mesh.position.x += Math.sin(p.life * 0.4) * 0.025;
+        } else if (p.type === 'micro-block') {
+          if (p.mesh.position.y > 3.55) {
+            p.mesh.position.y += p.vy;
+          } else {
+            p.mesh.position.x += (p.vx >= 0 ? 0.045 : -0.045);
+            p.mesh.position.y += 0.015;
+          }
+        }
+
+        if (p.life <= 0) {
+          scene.remove(p.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Adattamento dinamico canvas al ridimensionamento finestra/LIM
+    window.addEventListener('resize', () => {
+      if (!container) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // Avvio iniziale al caricamento della pagina
+    window.onload = function () {
+      switchMode('cycle');
+      animate();
+    };
+  </script>
+</body>
+</html>
